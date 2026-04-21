@@ -1,6 +1,9 @@
 from pathlib import Path
 import pandas as pd
 
+
+SHARED_COLUMNS = {"fieldsite", "participants", "date", "collect_time"}
+
 def widen_pair_rows(df: pd.DataFrame, pair_key: str = "pair_id", order_key: str = "order") -> pd.DataFrame:
     required_columns = {pair_key, order_key}
     missing_columns = required_columns.difference(df.columns)
@@ -16,16 +19,15 @@ def widen_pair_rows(df: pd.DataFrame, pair_key: str = "pair_id", order_key: str 
         if len(ordered_group) != 2:
             raise ValueError(f"Expected exactly 2 rows for pair_id={pair_id}, found {len(ordered_group)}")
 
-        ordered_records = ordered_group.to_dict(orient="records")
         pair_row = {pair_key: pair_id}
 
         for column in preserved_columns:
-            column_values = ordered_group[column]
-            if column_values.nunique(dropna=False) == 1:
-                pair_row[column] = column_values.iloc[0]
-            else:
-                for index, record in enumerate(ordered_records, start=1):
-                    pair_row[f"{column}{index}"] = record[column]
+            if column in SHARED_COLUMNS:
+                pair_row[column] = ordered_group[column].iloc[0]
+                continue
+
+            for index, (_, record) in enumerate(ordered_group.iterrows(), start=1):
+                pair_row[f"{column}{index}"] = record[column]
 
         wide_rows.append(pair_row)
 
