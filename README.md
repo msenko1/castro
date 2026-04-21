@@ -3,12 +3,19 @@
 ## Authors
 
 Grace Brown
+
 Anton de La Fuente
+
 Taiga Ikedo
+
 Lorena Martin
+
 Rob Podesva
+
 Michael Senko
+
 Yin Lin Tan
+
 Jonathan Wu Wong
 
 ---
