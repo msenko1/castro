@@ -1,0 +1,218 @@
+---
+title: "Castro Category Analysis"
+author: "Castro Team"
+date: "2026-03-12"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(viridis)
+my_theme <- theme_classic() +
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(color = "darkred")
+  )
+
+theme_set(my_theme)
+```
+
+## Read and arrange data
+
+```{r data}
+df.all <- read_csv("csv_with_categories.csv") %>% 
+  select(-"...1", -"date")
+
+df.castro <- df.all %>%
+  filter(response_site == "castro") %>%
+  count(fieldsite, category) %>% 
+  group_by(fieldsite) %>%
+  mutate(prop = n / sum(n)) %>% 
+  ungroup()
+
+df.mission <- df.all %>%
+  filter(response_site == "mission") %>%
+  count(fieldsite, category) %>%
+  group_by(fieldsite) %>%
+  mutate(prop = n / sum(n)) %>% 
+  ungroup()
+
+df.marina <- df.all %>%
+  filter(response_site == "marina") %>%
+  count(fieldsite, category) %>%
+  group_by(fieldsite) %>%
+  mutate(prop = n / sum(n)) %>% 
+  ungroup()
+```
+
+## Castro Plots
+
+```{r castro, echo=FALSE}
+df.castro %>% ggplot(aes(x = prop,
+                         y = fieldsite,
+                         fill = category)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = ifelse(prop > 0.04, as.character(category), "")),
+            position = position_stack(vjust = 0.5), 
+            size = 3, color = "white") +
+  coord_flip() +
+  labs(title = "Castro Responses by Fieldsite",
+       x = "Proportion",
+       y = "Fieldsite",
+       subtitle = "Only categories greater than 4% receive labels")
+
+df.all %>% 
+  filter(response_site == "castro",
+         fieldsite %in% c("mission_res", "marina_res")) %>% 
+  ggplot() +
+  geom_bar(aes(y = fieldsite,
+               fill = category),
+           position = "fill") +
+  coord_flip() +
+  facet_grid(~ order) +
+  labs(title = "Categorized Castro Responses by Order",
+       x = "Proportion",
+       y = "Fieldsite")
+
+df.castro %>% 
+  filter(fieldsite %in% c("castro_res", "castro_vis")) %>% 
+  ggplot(aes(x = prop,
+             y = fieldsite,
+             fill = category)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = ifelse(prop > 0.04, as.character(category), "")),
+            position = position_stack(vjust = 0.5), 
+            size = 3, color = "white") +
+  coord_flip() +
+  labs(title = "Castro Responses by Castro Respondent Type",
+       x = "Proportion",
+       y = "Fieldsite",
+       subtitle = "Only categories greater than 4% receive labels")
+```
+## Mission Plots
+
+```{r mission, echo=FALSE}
+df.mission %>% ggplot(aes(x = prop,
+                         y = fieldsite,
+                         fill = category)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = ifelse(prop > 0.04, as.character(category), "")),
+            position = position_stack(vjust = 0.5), 
+            size = 3, color = "white") +
+  coord_flip() +
+  labs(title = "Mission Responses by Fieldsite",
+       x = "Proportion",
+       y = "Fieldsite",
+       subtitle = "Only categories greater than 4% receive labels")
+
+df.all %>% 
+  filter(response_site == "mission",
+         fieldsite == "mission_res") %>% 
+  ggplot() +
+  geom_bar(aes(y = fieldsite,
+               fill = category),
+           position = "fill") +
+  coord_flip() +
+  facet_grid(~ order) +
+  labs(title = "Categorized Mission Responses by Order",
+       x = "Proportion",
+       y = "Fieldsite")
+```
+
+## Marina Plots
+
+```{r marina, echo=FALSE}
+df.marina %>% ggplot(aes(x = prop,
+                         y = fieldsite,
+                         fill = category)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = ifelse(prop > 0.04, as.character(category), "")),
+            position = position_stack(vjust = 0.5), 
+            size = 3, color = "white") +
+  coord_flip() +
+  labs(title = "Marina Responses by Fieldsite",
+       x = "Proportion",
+       y = "Fieldsite",
+       subtitle = "Only categories greater than 4% receive labels")
+
+df.all %>% 
+  filter(response_site == "marina",
+         fieldsite == "marina_res") %>% 
+  ggplot() +
+  geom_bar(aes(y = fieldsite,
+               fill = category),
+           position = "fill") +
+  coord_flip() +
+  facet_grid(~ order) +
+  labs(title = "Categorized Marina Responses by Order",
+       x = "Proportion",
+       y = "Fieldsite")
+```
+
+```{r gay v normative}
+df.all %>% 
+  filter(response_site == "castro",
+         category %in% c("gay","normative")) %>% 
+  summarize(
+    prop_gay = mean(category == "gay"),
+    prop_normative = mean(category == "normative")
+  )
+
+df.all %>% 
+  filter(response_site == "castro") %>% 
+  summarize(
+    prop_gay = mean(category == "gay"),
+    prop_normative = mean(category == "normative")
+  )
+
+df.all %>% 
+  filter(response_site == "marina") %>% 
+  summarize(
+    prop_gay = mean(category == "gay"),
+    prop_normative = mean(category == "normative")
+  )
+```
+
+```{r community v chaos}
+df.all %>%
+  filter(response_site == "castro",
+         fieldsite == "castro_res") %>%
+  summarize(
+    prop_gay = mean(category == "gay"),
+    prop_fun = mean(category == "fun"),
+    prop_chaos = mean(category == "chaotic"),
+    prop_community = mean(category == "community")
+  )
+
+df.all %>%
+  filter(response_site == "castro",
+         fieldsite == "castro_vis") %>%
+  summarize(
+    prop_gay = mean(category == "gay"),
+    prop_fun = mean(category == "fun"),
+    prop_chaos = mean(category == "chaotic"),
+    prop_community = mean(category == "community")
+  )
+```
+
+```{r antitask}
+df.all %>%
+  filter(response_site == "castro") %>% 
+  group_by(fieldsite) %>% 
+  summarize(
+    prop_antitask = mean(category == "antitask"),
+    prop_gay = mean(category == "gay"),
+  )
+
+df.all %>%
+  filter(response_site == "castro",
+         fieldsite == "castro_vis") %>%
+  summarize(
+    prop_gay = mean(category == "gay"),
+    prop_fun = mean(category == "fun"),
+    prop_chaos = mean(category == "chaotic"),
+    prop_community = mean(category == "community")
+  )
+```
+
+

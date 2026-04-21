@@ -1,0 +1,116 @@
+---
+title: "castro_analysis"
+output: pdf_document
+date: "2026-01-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(jsonlite)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(stringr)
+```
+
+### Load the JSONL data into R
+
+Step by step:
+
+- `file("castro_FINAL.jsonl", "r")`
+  - Opens the JSONL file in **read mode**
+  - Stores the open connection in `con`
+
+- `stream_in(con)`
+  - Reads the JSONL file **line by line**
+  - Converts each JSON object into a row of a data frame
+
+- `df <- ...`
+  - Stores the result as a table-like `df`
+
+```{r}
+con <- file("castro_FINAL.jsonl","r")
+df.castro <- tibble(stream_in(con))
+
+df.castro <- df.castro %>% 
+  mutate(messy = str_detect(response, "_"),
+         clean_response = ifelse(str_detect(response, "_"), "", response))
+
+summary(df.castro)
+
+df.download <- df.castro %>% 
+  select(messy,response,clean_response,response_site, participants,date, collect_time, slow,order,pair_id) %>% 
+  arrange(desc(messy))
+
+write_csv(df.download, "the_castro_needs_cleaning.csv")
+
+```
+
+```{r read csv}
+
+df.castro <- tibble(read_csv("clean_final_responses.csv")) %>% 
+  filter(response_site == "castro")
+
+df.castro
+
+```
+
+
+```{r}
+plot <- df %>% filter(response_site == 'marina') %>% 
+  select(fieldsite, participants, fieldworker, response_site, response_gay, response_euphemism, response_diversity, order) %>% 
+  mutate(response_gay_and_euphemism = response_gay + response_euphemism)%>% 
+  ggplot(aes(x=fieldsite,y=response_diversity))+
+           stat_summary(fun = "mean",
+                        geom = "bar") +
+  labs(
+    title = "Proportion responses describing Marina with diversity",
+    x = "Fieldsite",
+    y = "Proportion diversity responses / total",
+  ) +
+  theme_classic() 
+
+plot
+```
+
+
+
+```{r}
+plot <- df %>% filter(response1_site == 'marina' | response2_site == 'marina') %>% 
+  select(fieldsite, participants, fieldworker, response1_site, response1_gay, response1_euphemism,response1_diversity, response2_site, response2_gay,response2_euphemism,response2_diversity) %>% 
+  mutate(response_gay = ifelse(response1_gay+response2_gay<=1, response1_gay+response2_gay,1),
+         response_euphemism = ifelse(response1_euphemism+response2_euphemism<=1, response1_euphemism+response2_euphemism,1),
+         response_diversity = ifelse(response1_diversity+response2_diversity<=1, response1_diversity+response2_diversity,1),
+         response_gay_and_euphemism = response_gay + response_euphemism)%>% 
+  ggplot(aes(x=fieldsite,y=response_diversity))+
+           stat_summary(fun = "mean",
+                        geom = "bar") +
+  labs(
+    title = "Proportion responses describing Marina with diversity",
+    x = "Fieldsite",
+    y = "Proportion diversity responses / total",
+    color = "Species Type" # Changes the legend title
+  )
+  
+```
+
+```{r}
+color_bar <- df.castro1 %>%
+  filter(response_gay == 1 | response_euphemism == 1) %>% 
+  ggplot(mapping = aes(x = fieldsite, y=response_euphemism))+
+  stat_summary(fun = "mean",
+               geom= "bar") +
+  labs(
+    title = "Proportion euphemism out of total gay responses for Castro",
+    x = "Fieldsite",
+    y = "Proportion euphemism responses / total gay responses",
+    color = "Species Type" # Changes the legend title,
+    ) + 
+  theme_classic()
+
+color_bar
+```
+
+
+
