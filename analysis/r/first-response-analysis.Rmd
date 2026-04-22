@@ -1,0 +1,232 @@
+---
+title: "First Response Plots"
+output: pdf_document
+date: "2026-04-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(jsonlite)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(forcats)
+library(tidytext)
+library(here)
+```
+
+```{r, echo=FALSE}
+df<- read.csv(here("..", "..", "data", "processed", "micro_unigram.csv"))
+```
+
+```{r, echo=FALSE}
+## create first response only df
+df.first <- df %>% 
+  filter(order == 1) 
+
+# clean responses 
+df.castro <- df.first %>%
+  filter(response_site == "castro") %>%
+  count(fieldsite, clean_response) %>%
+  group_by(fieldsite) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup()
+df.mission <- df.first %>%
+  filter(response_site == "mission") %>%
+  count(fieldsite, clean_response) %>%
+  group_by(fieldsite) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup()
+df.marina <- df.first %>%
+  filter(response_site == "marina") %>%
+  count(fieldsite, clean_response) %>%
+  group_by(fieldsite) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup()
+
+# micro categories
+df.castro.cat <- df.first %>%
+  filter(response_site == "castro") %>%
+  count(fieldsite, category) %>%
+  group_by(fieldsite) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup()
+df.mission.cat <- df.first %>%
+  filter(response_site == "mission") %>%
+  count(fieldsite, category) %>%
+  group_by(fieldsite) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup()
+df.marina.cat <- df.first %>%
+  filter(response_site == "marina") %>%
+  count(fieldsite, category) %>%
+  group_by(fieldsite) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup()
+
+# macro categories here 
+```
+
+# Castro-First Responses
+## Micro Categories
+```{r castro, echo=FALSE, fig.height=8}
+# create label column: only show labels for proportions > 4%
+df.castro.cat %>%
+  group_by(fieldsite) %>%
+  arrange(fieldsite, desc(category)) %>%   # control stacking order
+  mutate(
+    label = ifelse(prop > 0.04, category, ""),
+    label_y = cumsum(prop) - prop / 2
+  ) %>%
+  ungroup() %>%
+  ggplot(aes(x = fieldsite, y = prop, fill = category)) +
+    geom_bar(stat = "identity", position = "stack", width = 0.7) +
+    geom_text(
+     aes(y = label_y, label = label),
+     color = "white",
+      size = 4
+  ) +
+  scale_y_continuous(
+    labels = scales::number_format(accuracy = 0.01),
+    expand = c(0, 0)
+  ) +
+  labs(
+    title = "Castro-First Responses by Fieldsite",
+    subtitle = "Only categories greater than 4% receive labels",
+    x = "Fieldsite",
+    y = "Proportion",
+    fill = "category"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(color = "darkred", size = 12),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.key = element_rect(fill = NA, color = NA)
+  )
+```
+
+# Mission-First Responses
+## Micro Categories
+```{r mission, echo=FALSE, fig.height=8}
+# Create label column: only show labels for proportions > 4%
+df.mission.cat %>%
+  group_by(fieldsite) %>%
+  arrange(fieldsite, desc(category)) %>%   # control stacking order
+  mutate(
+    label = ifelse(prop > 0.04, category, ""),
+    label_y = cumsum(prop) - prop / 2
+  ) %>%
+  ungroup() %>% 
+  ggplot(aes(x = fieldsite, y = prop, fill = category)) +
+    geom_bar(stat = "identity", position = "stack", width = 0.7) +
+    geom_text(
+      aes(y = label_y, label = label),
+      color = "white",
+      size = 4
+  ) +
+  scale_y_continuous(
+    labels = scales::number_format(accuracy = 0.01),
+    expand = c(0, 0)
+  ) +
+  labs(
+    title = "Mission-First Responses",
+    subtitle = "Only categories greater than 4% receive labels",
+    x = "Fieldsite",
+    y = "Proportion",
+    fill = "category"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(color = "darkred", size = 12),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.key = element_rect(fill = NA, color = NA)
+  )
+```
+
+# Marina-First Responses
+## Micro Categories
+```{r marina, echo=FALSE, fig.height=8}
+df.marina.cat %>%
+  group_by(fieldsite) %>%
+  arrange(fieldsite, desc(category)) %>%   # control stacking order
+  mutate(
+    label = ifelse(prop > 0.04, category, ""),
+    label_y = cumsum(prop) - prop / 2
+  ) %>%
+  ungroup() %>%
+  ggplot(aes(x = fieldsite, y = prop, fill = category)) +
+    geom_bar(stat = "identity", position = "stack", width = 0.7) +
+    geom_text(
+      aes(y = label_y, label = label),
+      color = "white",
+      size = 4
+  ) +
+  scale_y_continuous(
+    labels = scales::number_format(accuracy = 0.01),
+    expand = c(0, 0)
+  ) +
+  labs(
+    title = "Marina-First Responses",
+    subtitle = "Only categories greater than 4% receive labels",
+    x = "Fieldsite",
+    y = "Proportion",
+    fill = "category"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(color = "darkred", size = 12),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.key = element_rect(fill = NA, color = NA)
+  )
+```
+
+
+# First Individual Responses (All Response Sites)
+```{r indiv, echo=FALSE, fig.width=10, fig.height=13}
+top_10_indiv <- df.first %>%
+  filter(!is.na(response_site), 
+         !is.na(clean_response),
+         response_site != "") %>%
+  group_by(response_site, fieldsite, clean_response) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(response_site, fieldsite) %>%
+  mutate(total = sum(count),
+         pct = count / total) %>%
+  slice_max(order_by = count, n = 10, with_ties = FALSE) %>%
+  mutate(rank = row_number()) %>%
+  ungroup() 
+
+ggplot(top_10_indiv, aes(x = pct, 
+             y = reorder_within(clean_response, pct, 
+                                interaction(response_site, fieldsite)),
+             fill = fieldsite)) +
+  geom_col() +
+  geom_text(aes(label = scales::percent(pct, accuracy = 0.1)),
+            hjust = -0.1, size = 3) +
+  facet_wrap(~ response_site + fieldsite, scales = "free_y", ncol = 2) +
+  tidytext::scale_y_reordered() +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1),
+                     expand = expansion(mult = c(0, 0.15))) +
+  labs(
+    title = "Top 10 First Responses by Response Site and Fieldsite",
+    subtitle = "Percentages show share of all responses in that site × fieldsite combination",
+    x = "Percentage of all responses",
+    y = NULL,
+    fill = "Fieldsite"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(color = "darkred"),
+    panel.grid.major.y = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+
+```
+
