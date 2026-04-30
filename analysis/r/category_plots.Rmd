@@ -8,6 +8,8 @@ output: pdf_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(viridis)
+library(forcats)
+library(patchwork)
 my_theme <- theme_classic() +
   theme(
     plot.title = element_text(face = "bold"),
@@ -15,64 +17,123 @@ my_theme <- theme_classic() +
   )
 
 theme_set(my_theme)
+
+palette_25 <- c(
+  "#6EC6FF", # 1 soft sky blue
+  "#FFB74D", # 2 soft orange
+  "#81C784", # 3 soft green
+  "#BA68C8", # 4 soft purple
+  "#FFD54F", # 5 soft yellow
+
+  "#4FC3F7", # 6 light cyan-blue
+  "#FF8A65", # 7 coral peach
+  "#AED581", # 8 light lime
+  "#F06292", # 9 soft pink
+  "#9575CD", # 10 lavender
+
+  "#4DD0E1", # 11 aqua
+  "#FFCC80", # 12 pale apricot
+  "#A5D6A7", # 13 mint green
+  "#CE93D8", # 14 orchid
+  "#FFF176", # 15 buttery yellow
+
+  "#90CAF9", # 16 pastel blue
+  "#FFAB91", # 17 salmon pastel
+  "#C5E1A5", # 18 pale green
+  "#F48FB1", # 19 rose pink
+  "#B39DDB", # 20 soft violet
+
+  "#80DEEA", # 21 light teal
+  "#FFE082", # 22 warm sand yellow
+  "#B0BEC5", # 23 cool gray (anchor)
+  "#FFCCBC", # 24 blush peach
+  "#DCE775"  # 25 pale chartreuse
+)
 ```
 
 ## Read and arrange data
 
-```{r data}
-df.all <- read_csv("csv_with_categories.csv") %>% 
-  select(-"...1", -"date")
+```{r data,echo=FALSE,message=FALSE}
+df.all <- read_csv("../../data/processed/micro_unigram.csv") 
+
+category_levels <- sort(unique(df.all$category))
+
+palette_named <- setNames(palette_25[seq_along(category_levels)],
+                          category_levels)
 
 df.castro <- df.all %>%
   filter(response_site == "castro") %>%
   count(fieldsite, category) %>% 
   group_by(fieldsite) %>%
-  mutate(prop = n / sum(n)) %>% 
-  ungroup()
+  mutate(prop = n / sum(n)) %>%
+  ungroup() %>%
+  group_by(category) %>%
+  mutate(avg_prop = mean(prop)) %>%
+  ungroup() %>%
+  mutate(category = fct_reorder(category, avg_prop))
 
 df.mission <- df.all %>%
   filter(response_site == "mission") %>%
-  count(fieldsite, category) %>%
+  count(fieldsite, category) %>% 
   group_by(fieldsite) %>%
-  mutate(prop = n / sum(n)) %>% 
-  ungroup()
+  mutate(prop = n / sum(n)) %>%
+  ungroup() %>%
+  group_by(category) %>%
+  mutate(avg_prop = mean(prop)) %>%
+  ungroup() %>%
+  mutate(category = fct_reorder(category, avg_prop))
 
 df.marina <- df.all %>%
   filter(response_site == "marina") %>%
-  count(fieldsite, category) %>%
+  count(fieldsite, category) %>% 
   group_by(fieldsite) %>%
-  mutate(prop = n / sum(n)) %>% 
-  ungroup()
+  mutate(prop = n / sum(n)) %>%
+  ungroup() %>%
+  group_by(category) %>%
+  mutate(avg_prop = mean(prop)) %>%
+  ungroup() %>%
+  mutate(category = fct_reorder(category, avg_prop))
 ```
 
 ## Castro Plots
 
-```{r castro, echo=FALSE}
-df.castro %>% ggplot(aes(x = prop,
-                         y = fieldsite,
-                         fill = category)) +
+```{r castro, echo=FALSE, message=FALSE}
+plot.castro <- df.castro %>% 
+  ggplot(aes(x = prop,
+             y = fieldsite,
+             fill = category)) +
   geom_col(position = "stack") +
   geom_text(aes(label = ifelse(prop > 0.04, as.character(category), "")),
             position = position_stack(vjust = 0.5), 
-            size = 3, color = "white") +
+            size = 3.5, color = "black") +
   coord_flip() +
   labs(title = "Castro Responses by Fieldsite",
        x = "Proportion",
        y = "Fieldsite",
-       subtitle = "Only categories greater than 4% receive labels")
+       subtitle = "Only categories greater than 4% receive labels") +
+  guides(fill = guide_legend(ncol = 2)) + 
+  scale_y_discrete(labels = c("castro_res" = "Castro Residents",
+                              "castro_vis" = "Castro Visitors",
+                              "marina_res" = "Marina",
+                              "mission_res" = "Mission")) +
+  scale_fill_manual(values = palette_named)
 
-df.all %>% 
-  filter(response_site == "castro",
-         fieldsite %in% c("mission_res", "marina_res")) %>% 
-  ggplot() +
-  geom_bar(aes(y = fieldsite,
-               fill = category),
-           position = "fill") +
-  coord_flip() +
-  facet_grid(~ order) +
-  labs(title = "Categorized Castro Responses by Order",
-       x = "Proportion",
-       y = "Fieldsite")
+plot.castro
+
+ggsave("../../output/figures/castro_all_fieldsite.png")
+
+# df.all %>% 
+#   filter(response_site == "castro",
+#          fieldsite %in% c("mission_res", "marina_res")) %>% 
+#   ggplot() +
+#   geom_bar(aes(y = fieldsite,
+#                fill = category),
+#            position = "fill") +
+#   coord_flip() +
+#   facet_grid(~ order) +
+#   labs(title = "Categorized Castro Responses by Order",
+#        x = "Proportion",
+#        y = "Fieldsite")
 
 df.castro %>% 
   filter(fieldsite %in% c("castro_res", "castro_vis")) %>% 
@@ -82,71 +143,121 @@ df.castro %>%
   geom_col(position = "stack") +
   geom_text(aes(label = ifelse(prop > 0.04, as.character(category), "")),
             position = position_stack(vjust = 0.5), 
-            size = 3, color = "white") +
+            size = 3.5, color = "black") +
   coord_flip() +
-  labs(title = "Castro Responses by Castro Respondent Type",
+  labs(title = "Castro Responses by Castro Participant Type",
        x = "Proportion",
        y = "Fieldsite",
-       subtitle = "Only categories greater than 4% receive labels")
+       subtitle = "Only categories greater than 4% receive labels") +
+  guides(fill = guide_legend(ncol = 2)) + 
+  scale_y_discrete(labels = c("castro_res" = "Castro Residents",
+                              "castro_vis" = "Castro Visitors")) +
+  scale_fill_manual(values = palette_named)
+
+ggsave("../../output/figures/castro_within.png")
 ```
 ## Mission Plots
 
-```{r mission, echo=FALSE}
-df.mission %>% ggplot(aes(x = prop,
-                         y = fieldsite,
-                         fill = category)) +
+```{r mission, echo=FALSE,message=FALSE}
+plot.mission <- df.mission %>% 
+  ggplot(aes(x = prop,
+             y = fieldsite,
+             fill = category)) +
   geom_col(position = "stack") +
   geom_text(aes(label = ifelse(prop > 0.04, as.character(category), "")),
             position = position_stack(vjust = 0.5), 
-            size = 3, color = "white") +
+            size = 3.5, color = "black") +
   coord_flip() +
   labs(title = "Mission Responses by Fieldsite",
        x = "Proportion",
        y = "Fieldsite",
-       subtitle = "Only categories greater than 4% receive labels")
+       subtitle = "Only categories greater than 4% receive labels") +
+  guides(fill = guide_legend(ncol = 2)) + 
+  scale_y_discrete(labels = c("castro_res" = "Castro Residents",
+                              "castro_vis" = "Castro Visitors",
+                              "mission_res" = "Mission")) +
+  scale_fill_manual(values = palette_named)
 
-df.all %>% 
-  filter(response_site == "mission",
-         fieldsite == "mission_res") %>% 
-  ggplot() +
-  geom_bar(aes(y = fieldsite,
-               fill = category),
-           position = "fill") +
-  coord_flip() +
-  facet_grid(~ order) +
-  labs(title = "Categorized Mission Responses by Order",
-       x = "Proportion",
-       y = "Fieldsite")
+plot.mission
+
+ggsave("../../output/figures/mission_all_fieldsite.png")
+
+# df.all %>% 
+#   filter(response_site == "mission",
+#          fieldsite == "mission_res") %>% 
+#   ggplot() +
+#   geom_bar(aes(y = fieldsite,
+#                fill = category),
+#            position = "fill") +
+#   coord_flip() +
+#   facet_grid(~ order) +
+#   labs(title = "Categorized Mission Responses by Order",
+#        x = "Proportion",
+#        y = "Fieldsite")
 ```
 
 ## Marina Plots
 
-```{r marina, echo=FALSE}
-df.marina %>% ggplot(aes(x = prop,
-                         y = fieldsite,
-                         fill = category)) +
+```{r marina, echo=FALSE,message=FALSE}
+plot.marina <- df.marina %>% 
+  ggplot(aes(x = prop,
+             y = fieldsite,
+             fill = category)) +
   geom_col(position = "stack") +
   geom_text(aes(label = ifelse(prop > 0.04, as.character(category), "")),
             position = position_stack(vjust = 0.5), 
-            size = 3, color = "white") +
+            size = 3.5, color = "black") +
   coord_flip() +
   labs(title = "Marina Responses by Fieldsite",
        x = "Proportion",
        y = "Fieldsite",
-       subtitle = "Only categories greater than 4% receive labels")
+       subtitle = "Only categories greater than 4% receive labels") +
+  guides(fill = guide_legend(ncol = 2)) + 
+  scale_y_discrete(labels = c("castro_res" = "Castro Residents",
+                              "castro_vis" = "Castro Visitors",
+                              "marina_res" = "Marina")) +
+  scale_fill_manual(values = palette_named)
 
-df.all %>% 
-  filter(response_site == "marina",
-         fieldsite == "marina_res") %>% 
-  ggplot() +
-  geom_bar(aes(y = fieldsite,
-               fill = category),
-           position = "fill") +
-  coord_flip() +
-  facet_grid(~ order) +
-  labs(title = "Categorized Marina Responses by Order",
-       x = "Proportion",
-       y = "Fieldsite")
+plot.marina
+
+ggsave("../../output/figures/marina_all_fieldsite.png")
+
+# df.all %>% 
+#   filter(response_site == "marina",
+#          fieldsite == "marina_res") %>% 
+#   ggplot() +
+#   geom_bar(aes(y = fieldsite,
+#                fill = category),
+#            position = "fill") +
+#   coord_flip() +
+#   facet_grid(~ order) +
+#   labs(title = "Categorized Marina Responses by Order",
+#        x = "Proportion",
+#        y = "Fieldsite")
+```
+```{r patchy, echo=FALSE,message=FALSE}
+
+plot.castro <- plot.castro +
+  labs(title = NULL,
+       subtitle = NULL) +
+  theme(legend.position = "none")
+
+plot.mission <- plot.mission +
+  labs(title = NULL,
+       subtitle = NULL) +
+  theme(legend.position = "none")
+
+plot.marina <- plot.marina +
+  labs(title = NULL,
+       subtitle = NULL) +
+  theme(legend.position = "none")
+
+(plot.castro + plot.mission + plot.marina) &
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom",
+        legend.title = element_blank())
+  
+
 ```
 
 ```{r gay v normative}
