@@ -1,0 +1,209 @@
+---
+title: "probability"
+author: "Michael Senko"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(viridis)
+library(forcats)
+library(patchwork)
+my_theme <- theme_classic() +
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(color = "darkred")
+  )
+
+theme_set(my_theme)
+
+palette_25 <- c(
+  "#6EC6FF", # 1 soft sky blue
+  "#FFB74D", # 2 soft orange
+  "#81C784", # 3 soft green
+  "#BA68C8", # 4 soft purple
+  "#FFD54F", # 5 soft yellow
+
+  "#4FC3F7", # 6 light cyan-blue
+  "#FF8A65", # 7 coral peach
+  "#AED581", # 8 light lime
+  "#F06292", # 9 soft pink
+  "#9575CD", # 10 lavender
+
+  "#4DD0E1", # 11 aqua
+  "#FFCC80", # 12 pale apricot
+  "#A5D6A7", # 13 mint green
+  "#CE93D8", # 14 orchid
+  "#FFF176", # 15 buttery yellow
+
+  "#90CAF9", # 16 pastel blue
+  "#FFAB91", # 17 salmon pastel
+  "#C5E1A5", # 18 pale green
+  "#F48FB1", # 19 rose pink
+  "#B39DDB", # 20 soft violet
+
+  "#80DEEA", # 21 light teal
+  "#FFE082", # 22 warm sand yellow
+  "#B0BEC5", # 23 cool gray (anchor)
+  "#FFCCBC", # 24 blush peach
+  "#DCE775"  # 25 pale chartreuse
+)
+```
+
+```{r data,echo=FALSE,message=FALSE}
+df.c_marina_fwd <- read_csv("../prob_analysis/castro_marina_forward.csv")
+df.c_marina_bwd <- read_csv("../prob_analysis/castro_marina_backward.csv")
+
+df.c_mission_fwd <- read_csv("../prob_analysis/castro_mission_forward.csv")
+df.c_mission_bwd <- read_csv("../prob_analysis/castro_mission_backward.csv")
+
+df.fwd <- bind_rows(df.c_marina_fwd,df.c_mission_fwd)
+
+df.bwd <- bind_rows(df.c_marina_bwd,df.c_mission_bwd)
+
+df.all <- bind_rows(df.bwd, df.fwd)
+
+category_levels <- sort(unique(df.all$category2))
+
+palette <- setNames(palette_25[seq_along(category_levels)],
+                          category_levels)
+```
+
+```{r adequation - fun, message=FALSE,echo=FALSE}
+df.fwd %>% 
+  filter(category1 == "fun") %>% 
+  group_by(category2) %>%
+  mutate(avg_prob = mean(probability)) %>%
+  ungroup() %>%
+  mutate(category2 = fct_reorder(category2, avg_prob)) %>% 
+  ggplot(aes(x = probability,
+             y = response_site2,
+             fill = category2)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = ifelse(probability > 0.04, as.character(category2), "")),
+            position = position_stack(vjust = 0.5), 
+            size = 3.5, color = "black") +
+    labs(title = "When 'fun' describes the Castro first...",
+       x = "Probability",
+       y = "Second Response Site",
+       subtitle = "Only categories greater than 4% receive labels",
+       fill = "Second response") +
+  guides(fill = guide_legend(ncol = 2)) +
+  scale_fill_manual(values = palette) +
+  coord_flip() +
+  scale_y_discrete(labels = c("marina" = "Marina",
+                              "mission" = "Mission"))
+
+ggsave("../../output/figures/fun_adequation.png")
+```
+
+```{r adequation - diversity, message=FALSE,echo=FALSE}
+df.fwd %>% 
+  filter(category1 == "diverse") %>% 
+  group_by(category2) %>%
+  mutate(avg_prob = mean(probability)) %>%
+  ungroup() %>%
+  mutate(category2 = fct_reorder(category2, avg_prob)) %>% 
+  ggplot(aes(x = probability,
+             y = response_site2,
+             fill = category2)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = ifelse(probability > 0.04, as.character(category2), "")),
+            position = position_stack(vjust = 0.5), 
+            size = 3.5, color = "black") +
+    labs(title = "When 'diverse' describes the Castro first...",
+       x = "Probability",
+       y = "Second Response Site",
+       # subtitle = "Only categories greater than 4% receive labels",
+       fill = "Second response") +
+  guides(fill = guide_legend(ncol = 2)) +
+  scale_fill_manual(values = palette) +
+  coord_flip() +
+  scale_y_discrete(labels = c("marina" = "Marina",
+                              "mission" = "Mission"))
+
+ggsave("../../output/figures/diversity_adequation.png")
+```
+
+```{r differentiation - gay, message=FALSE,echo=FALSE}
+df.fwd %>% 
+  filter(category1 == "gay") %>% 
+  group_by(category2) %>%
+  mutate(avg_prob = mean(probability)) %>%
+  ungroup() %>%
+  mutate(category2 = fct_reorder(category2, avg_prob)) %>% 
+  ggplot(aes(x = probability,
+             y = response_site2,
+             fill = category2)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = ifelse(probability > 0.04, as.character(category2), "")),
+            position = position_stack(vjust = 0.5), 
+            size = 3.5, color = "black") +
+    labs(title = "When 'gay' describes the Castro first...",
+       x = "Probability",
+       y = "Second Response Site",
+       subtitle = "Only categories greater than 4% receive labels",
+       fill = "Second response") +
+  guides(fill = guide_legend(ncol = 2)) +
+  scale_fill_manual(values = palette) +
+  coord_flip() +
+  scale_y_discrete(labels = c("marina" = "Marina",
+                              "mission" = "Mission"))
+
+ggsave("../../output/figures/gay_differentiation.png")
+```
+
+```{r differentation - latino, message=FALSE,echo=FALSE}
+df.bwd %>% 
+  filter(category2 == "latino",
+         response_site2 == "mission") %>% 
+  group_by(category1) %>% 
+  mutate(avg_prob = mean(probability)) %>%
+  ungroup() %>%
+  mutate(category1 = fct_reorder(category1, avg_prob)) %>% 
+  ggplot(aes(x = probability,
+             y = response_site1,
+             fill = category1)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = ifelse(probability > 0.04, as.character(category1), "")),
+            position = position_stack(vjust = 0.5), 
+            size = 3.5, color = "black") +
+  labs(title = "When 'Latino' describes the Mission second...",
+       x = "Probability",
+       y = "First Response Site",
+       # subtitle = "Only categories greater than 4% receive labels",
+       fill = "First response") +
+  guides(fill = guide_legend(ncol = 2)) +
+  scale_fill_manual(values = palette) +
+  coord_flip()
+
+ggsave("../../output/figures/latino_differentiation.png")
+```
+
+```{r differentation - normative, message=FALSE,echo=FALSE}
+df.bwd %>% 
+  filter(category2 == "normative",
+         response_site2 == "marina") %>% 
+  group_by(category1) %>% 
+  mutate(avg_prob = mean(probability)) %>%
+  ungroup() %>%
+  mutate(category1 = fct_reorder(category1, avg_prob)) %>% 
+  ggplot(aes(x = probability,
+             y = response_site1,
+             fill = category1)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = ifelse(probability > 0.04, as.character(category1), "")),
+            position = position_stack(vjust = 0.5), 
+            size = 3.5, color = "black") +
+  labs(title = "When 'normative' describes the Marina second...",
+       x = "Probability",
+       y = "First Response Site",
+       # subtitle = "Only categories greater than 4% receive labels",
+       fill = "First response") +
+  guides(fill = guide_legend(ncol = 2)) +
+  scale_fill_manual(values = palette) +
+  coord_flip()
+
+ggsave("../../output/figures/normative_differentiation.png")
+```
